@@ -107,14 +107,19 @@ func main() {
 		log.Fatalln("Indexer init failed")
 	}
 
-	// asmaDir := "/Users/alesnajmann/Work/asma.rocks/asma-svn/asma"
-
 	if *asmaDirPtr == "" {
 		log.Fatalln("ASMA directory not specified")
 	}
 
+	batch := index.NewBatch()
+	defer index.Batch(batch)
+
 	filepath.Walk(*asmaDirPtr, func(path string, info os.FileInfo, err error) error {
 		if info.IsDir() {
+			index.Batch(batch)
+			if batch.Size() > 50 {
+				batch = index.NewBatch()
+			}
 			return nil
 		}
 		if filepath.Ext(path) == ".sap" {
@@ -124,8 +129,8 @@ func main() {
 				return nil
 			}
 			sapDoc := ExtractStructure(sapInfo)
-			fmt.Println(sapDoc)
-			index.Index(sapName, sapDoc)
+			// fmt.Println(sapDoc)
+			batch.Index(sapName, sapDoc)
 		}
 		return nil
 	})
