@@ -129,7 +129,7 @@ func main() {
 				return nil
 			}
 			sapDoc := ExtractStructure(sapInfo)
-			// fmt.Println(sapDoc)
+			fmt.Println(sapDoc)
 			batch.Index(sapName, sapDoc)
 		}
 		return nil
