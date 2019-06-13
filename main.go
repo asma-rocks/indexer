@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/blevesearch/bleve"
@@ -42,7 +43,8 @@ func UseSapMapping() mapping.IndexMapping {
 
 	authorMapping := bleve.NewTextFieldMapping()
 	nameMapping := bleve.NewTextFieldMapping()
-	dateMapping := bleve.NewDateTimeFieldMapping()
+	// dateMapping := bleve.NewDateTimeFieldMapping()
+	dateMapping := bleve.NewNumericFieldMapping()
 
 	sapMapping.AddFieldMappingsAt("Author", authorMapping)
 	sapMapping.AddFieldMappingsAt("Name", nameMapping)
@@ -70,6 +72,13 @@ func takeValue(piece []byte) string {
 	return stripQuotes(string(pair[1]))
 }
 
+var yearRegexp = regexp.MustCompile("[1-9]{1}[0-9]{2}[0-9?]{1}")
+
+func takeYearValue(piece []byte) string {
+	pair := bytes.Split(piece, []byte{0x20, 0x22})
+	return string(yearRegexp.Find(pair[1]))
+}
+
 // ExtractStructure exports structure
 func ExtractStructure(info []byte) *SapDocument {
 	pieces := bytes.Split(info, []byte{0xD, 0xA})
@@ -80,7 +89,7 @@ func ExtractStructure(info []byte) *SapDocument {
 	return &SapDocument{
 		Author: takeValue(pieces[1]),
 		Name:   takeValue(pieces[2]),
-		Date:   takeValue(pieces[3]),
+		Date:   takeYearValue(pieces[3]),
 	}
 }
 
@@ -129,8 +138,8 @@ func main() {
 				return nil
 			}
 			sapDoc := ExtractStructure(sapInfo)
-			fmt.Println(sapDoc)
 			batch.Index(sapName, sapDoc)
+			fmt.Println(sapDoc)
 		}
 		return nil
 	})
