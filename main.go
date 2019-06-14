@@ -21,7 +21,7 @@ type SapDocument struct {
 	Name   string
 	Date   string
 	Type   string
-	Stereo byte
+	Output string
 }
 
 func (sap *SapDocument) String() string {
@@ -32,8 +32,8 @@ func (sap *SapDocument) String() string {
 	b.WriteString(sap.Name)
 	b.WriteString(",Date:")
 	b.WriteString(sap.Date)
-	b.WriteString(",Stereo:")
-	b.WriteString(fmt.Sprint(sap.Stereo))
+	b.WriteString(",Output:")
+	b.WriteString(fmt.Sprint(sap.Output))
 	b.WriteString(",Type:")
 	b.WriteString(fmt.Sprint(sap.Type))
 	b.WriteRune(']')
@@ -48,13 +48,13 @@ func UseSapMapping() mapping.IndexMapping {
 	nameMapping := bleve.NewTextFieldMapping()
 	// dateMapping := bleve.NewDateTimeFieldMapping()
 	dateMapping := bleve.NewNumericFieldMapping()
-	stereoMapping := bleve.NewNumericFieldMapping()
+	stereoMapping := bleve.NewTextFieldMapping()
 	typeMapping := bleve.NewTextFieldMapping()
 
 	sapMapping.AddFieldMappingsAt("Author", authorMapping)
 	sapMapping.AddFieldMappingsAt("Name", nameMapping)
 	sapMapping.AddFieldMappingsAt("Date", dateMapping)
-	sapMapping.AddFieldMappingsAt("Stereo", stereoMapping)
+	sapMapping.AddFieldMappingsAt("Output", stereoMapping)
 	sapMapping.AddFieldMappingsAt("Type", typeMapping)
 
 	indexMapping := bleve.NewIndexMapping()
@@ -105,15 +105,15 @@ func ExtractStructure(info []byte) *SapDocument {
 	// 1 AUTHOR_"author"
 	// 2 NAME_"name"
 	// 3 DATE_"date"
-	stereo := byte(0)
+	outputType := "M"
 	if bytes.Contains(info, Stereo) {
-		stereo = byte(1)
+		outputType = "S"
 	}
 	return &SapDocument{
 		Author: takeValue(pieces[1]),
 		Name:   takeValue(pieces[2]),
 		Date:   takeYearValue(pieces[3]),
-		Stereo: stereo,
+		Output: outputType,
 		Type:   takeTypeValue(info),
 	}
 }
