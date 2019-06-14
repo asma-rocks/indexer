@@ -20,20 +20,20 @@ type SapDocument struct {
 	Author string
 	Name   string
 	Date   string
+	Stereo byte
 }
 
 func (sap *SapDocument) String() string {
 	var b strings.Builder
-	b.WriteRune('{')
-	b.WriteString("Author:")
+	b.WriteString("[Author:")
 	b.WriteString(sap.Author)
-	b.WriteRune(',')
-	b.WriteString("Name:")
+	b.WriteString(",Name:")
 	b.WriteString(sap.Name)
-	b.WriteRune(',')
-	b.WriteString("Date:")
+	b.WriteString(",Date:")
 	b.WriteString(sap.Date)
-	b.WriteRune('}')
+	b.WriteString(",Stereo:")
+	b.WriteString(fmt.Sprint(sap.Stereo))
+	b.WriteRune(']')
 	return b.String()
 }
 
@@ -45,10 +45,12 @@ func UseSapMapping() mapping.IndexMapping {
 	nameMapping := bleve.NewTextFieldMapping()
 	// dateMapping := bleve.NewDateTimeFieldMapping()
 	dateMapping := bleve.NewNumericFieldMapping()
+	stereoMapping := bleve.NewNumericFieldMapping()
 
 	sapMapping.AddFieldMappingsAt("Author", authorMapping)
 	sapMapping.AddFieldMappingsAt("Name", nameMapping)
 	sapMapping.AddFieldMappingsAt("Date", dateMapping)
+	sapMapping.AddFieldMappingsAt("Stereo", stereoMapping)
 
 	indexMapping := bleve.NewIndexMapping()
 	indexMapping.AddDocumentMapping("Sap", sapMapping)
@@ -79,6 +81,9 @@ func takeYearValue(piece []byte) string {
 	return string(yearRegexp.Find(pair[1]))
 }
 
+// Stereo string reference in SAP file
+var Stereo = []byte("STEREO")
+
 // ExtractStructure exports structure
 func ExtractStructure(info []byte) *SapDocument {
 	pieces := bytes.Split(info, []byte{0xD, 0xA})
@@ -86,10 +91,15 @@ func ExtractStructure(info []byte) *SapDocument {
 	// 1 AUTHOR_"author"
 	// 2 NAME_"name"
 	// 3 DATE_"date"
+	stereo := byte(0)
+	if bytes.Contains(info, Stereo) {
+		stereo = byte(1)
+	}
 	return &SapDocument{
 		Author: takeValue(pieces[1]),
 		Name:   takeValue(pieces[2]),
 		Date:   takeYearValue(pieces[3]),
+		Stereo: stereo,
 	}
 }
 
