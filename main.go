@@ -20,6 +20,7 @@ type SapDocument struct {
 	Author string
 	Name   string
 	Date   string
+	Type   string
 	Stereo byte
 }
 
@@ -33,6 +34,8 @@ func (sap *SapDocument) String() string {
 	b.WriteString(sap.Date)
 	b.WriteString(",Stereo:")
 	b.WriteString(fmt.Sprint(sap.Stereo))
+	b.WriteString(",Type:")
+	b.WriteString(fmt.Sprint(sap.Type))
 	b.WriteRune(']')
 	return b.String()
 }
@@ -46,11 +49,13 @@ func UseSapMapping() mapping.IndexMapping {
 	// dateMapping := bleve.NewDateTimeFieldMapping()
 	dateMapping := bleve.NewNumericFieldMapping()
 	stereoMapping := bleve.NewNumericFieldMapping()
+	typeMapping := bleve.NewTextFieldMapping()
 
 	sapMapping.AddFieldMappingsAt("Author", authorMapping)
 	sapMapping.AddFieldMappingsAt("Name", nameMapping)
 	sapMapping.AddFieldMappingsAt("Date", dateMapping)
 	sapMapping.AddFieldMappingsAt("Stereo", stereoMapping)
+	sapMapping.AddFieldMappingsAt("Type", typeMapping)
 
 	indexMapping := bleve.NewIndexMapping()
 	indexMapping.AddDocumentMapping("Sap", sapMapping)
@@ -75,10 +80,19 @@ func takeValue(piece []byte) string {
 }
 
 var yearRegexp = regexp.MustCompile("[1-9]{1}[0-9]{2}[0-9?]{1}")
+var typeRegexp = regexp.MustCompile("TYPE ([BCDSR]{1})")
 
 func takeYearValue(piece []byte) string {
 	pair := bytes.Split(piece, []byte{0x20, 0x22})
 	return string(yearRegexp.Find(pair[1]))
+}
+
+func takeTypeValue(info []byte) string {
+	matches := typeRegexp.FindStringSubmatch(string(info))
+	if matches[1] == "" {
+		log.Fatalln("Unknown TYPE ", matches[1])
+	}
+	return matches[1]
 }
 
 // Stereo string reference in SAP file
@@ -100,6 +114,7 @@ func ExtractStructure(info []byte) *SapDocument {
 		Name:   takeValue(pieces[2]),
 		Date:   takeYearValue(pieces[3]),
 		Stereo: stereo,
+		Type:   takeTypeValue(info),
 	}
 }
 
